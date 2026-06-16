@@ -14,7 +14,7 @@ pipeline {
                 dir('netflix-clone-app') {
                     dependencyCheck(
                         odcInstallation: 'OWASP',
-                        additionalArguments: '--scan .'
+                        additionalArguments: '--scan . --noupdate'
                     )
                 }
             }
@@ -36,6 +36,10 @@ pipeline {
 
         failure {
             echo 'OWASP Scan Failed'
+        }
+
+        always {
+            echo 'OWASP Pipeline Finished'
         }
     }
 }

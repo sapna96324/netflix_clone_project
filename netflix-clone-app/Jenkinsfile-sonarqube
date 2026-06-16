@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+
+    environment {
+        SCANNER_HOME = tool 'SonarScanner'
+    }
+
+    stages {
+
+        stage('GitHub Checkout') {
+            steps {
+                echo 'Repository checked out from GitHub'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('netflix-clone-app') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=Netflix-Clone \
+                        -Dsonar.projectName=Netflix-Clone \
+                        -Dsonar.sources=src
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SonarQube Analysis Successful'
+        }
+
+        failure {
+            echo 'SonarQube Analysis Failed'
+        }
+    }
+}

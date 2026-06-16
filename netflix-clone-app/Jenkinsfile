@@ -5,17 +5,13 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                dir('netflix-clone-app') {
-                    sh 'docker run --rm -v $PWD:/app -w /app node:18-alpine npm install'
-                }
+                sh 'docker run --rm -v $PWD:/app -w /app node:18-alpine npm install'
             }
         }
 
         stage('Build') {
             steps {
-                dir('netflix-clone-app') {
-                    sh 'docker run --rm -v $PWD:/app -w /app node:18-alpine npm run build'
-                }
+                sh 'docker run --rm -v $PWD:/app -w /app node:18-alpine npm run build'
             }
         }
     }

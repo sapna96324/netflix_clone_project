@@ -13,7 +13,9 @@ pipeline {
             steps {
                 dir('netflix-clone-app') {
                     sh '''
-                    docker build -t netflix-clone:v1 .
+                    docker build \
+--build-arg TMDB_V3_API_KEY=1cc6cbfc419ac84dec89bb8b9c51e49b \
+-t netflix-clone:v1 .
                     '''
                 }
             }

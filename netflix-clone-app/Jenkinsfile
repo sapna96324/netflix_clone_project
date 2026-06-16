@@ -2,8 +2,10 @@ pipeline {
     agent any
 
     environment {
-        SCANNER_HOME = tool 'SonarScanner'
-    }
+    SCANNER_HOME = tool 'SonarScanner'
+    NODEJS_HOME = tool 'NodeJS18'
+    PATH = "${NODEJS_HOME}/bin:${env.PATH}"
+}
 
     stages {
 

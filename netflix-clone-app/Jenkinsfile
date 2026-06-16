@@ -3,6 +3,12 @@ pipeline {
 
     stages {
 
+        stage('GitHub Checkout') {
+            steps {
+                echo 'Repository checked out from GitHub'
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 dir('netflix-clone-app') {

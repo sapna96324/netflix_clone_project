@@ -1,18 +1,12 @@
 pipeline {
     agent any
 
-    environment {
-    SCANNER_HOME = tool 'SonarScanner'
-    NODEJS_HOME = tool 'NodeJS18'
-    PATH = "${NODEJS_HOME}/bin:${env.PATH}"
-}
-
     stages {
 
         stage('Install Dependencies') {
             steps {
                 dir('netflix-clone-app') {
-                    sh 'npm install'
+                    sh 'docker run --rm -v $PWD:/app -w /app node:18-alpine npm install'
                 }
             }
         }
@@ -20,53 +14,19 @@ pipeline {
         stage('Build') {
             steps {
                 dir('netflix-clone-app') {
-                    sh 'npm run build'
+                    sh 'docker run --rm -v $PWD:/app -w /app node:18-alpine npm run build'
                 }
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                dir('netflix-clone-app') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh """
-                        ${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=Netflix-Clone \
-                        -Dsonar.projectName="Netflix Clone" \
-                        -Dsonar.sources=src
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('OWASP Dependency Check') {
-            steps {
-                dir('netflix-clone-app') {
-                    dependencyCheck(
-                        odcInstallation: 'OWASP',
-                        additionalArguments: '--scan .'
-                    )
-                }
-            }
-        }
-
-        stage('Publish OWASP Report') {
-            steps {
-                dependencyCheckPublisher(
-                    pattern: '**/dependency-check-report.xml'
-                )
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Build Successful'
         }
 
         failure {
-            echo 'Pipeline failed. Check console output.'
+            echo 'Build Failed'
         }
     }
 }

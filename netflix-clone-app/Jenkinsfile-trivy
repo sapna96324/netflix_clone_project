@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('GitHub Checkout') {
+            steps {
+                echo 'Repository checked out from GitHub'
+            }
+        }
+
+        stage('Trivy File System Scan') {
+            steps {
+                dir('netflix-clone-app') {
+                    sh '''
+                    trivy fs \
+                    --format table \
+                    --severity HIGH,CRITICAL \
+                    .
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Trivy Scan Successful'
+        }
+
+        failure {
+            echo 'Trivy Scan Failed'
+        }
+
+        always {
+            echo 'Trivy Pipeline Finished'
+        }
+    }
+}

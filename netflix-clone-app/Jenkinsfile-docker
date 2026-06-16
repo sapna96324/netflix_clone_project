@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('GitHub Checkout') {
+            steps {
+                echo 'Repository checked out from GitHub'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('netflix-clone-app') {
+                    sh '''
+                    docker build -t netflix-clone:v1 .
+                    '''
+                }
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                trivy image \
+                --severity HIGH,CRITICAL \
+                netflix-clone:v1
+                '''
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                sh '''
+                docker rm -f netflix-app || true
+
+                docker run -d \
+                --name netflix-app \
+                -p 3000:80 \
+                netflix-clone:v1
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Docker Pipeline Successful'
+        }
+
+        failure {
+            echo 'Docker Pipeline Failed'
+        }
+
+        always {
+            echo 'Docker Pipeline Finished'
+        }
+    }
+}

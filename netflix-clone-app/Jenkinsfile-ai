@@ -57,6 +57,15 @@ pipeline {
         '''
     }
 }
+stage('Prepare Dataset') {
+    steps {
+        sh '''
+        . ai-security/venv/bin/activate
+
+        python ai-security/scripts/prepare_dataset.py
+        '''
+    }
+}
 
     }
 

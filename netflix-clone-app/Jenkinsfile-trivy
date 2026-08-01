@@ -1,11 +1,11 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "netflix-clone:v1"
-        REPORT_DIR = "security/trivy"
-    }
-
+environment {
+    IMAGE_NAME = "netflix-clone:v1"
+    REPORT_DIR = "security/trivy"
+    ARTIFACT_DIR = "/var/jenkins_home/devsecops-artifacts/trivy"
+}
     stages {
 
         stage('Checkout Source') {
@@ -84,6 +84,24 @@ pipeline {
                 '''
             }
         }
+
+stage('Publish Report') {
+    steps {
+        sh '''
+        mkdir -p ${ARTIFACT_DIR}
+
+        cp ${REPORT_DIR}/trivy-report.json \
+           ${ARTIFACT_DIR}/
+
+        echo ""
+        echo "===================================="
+        echo "Published Trivy Report"
+        echo "===================================="
+
+        ls -lah ${ARTIFACT_DIR}
+        '''
+    }
+}
 
         stage('Archive Report') {
             steps {

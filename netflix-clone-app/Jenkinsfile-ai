@@ -84,6 +84,24 @@ stage('Predict Security Risk') {
         '''
     }
 }
+stage('Generate HTML Report') {
+    steps {
+        sh '''
+        . ai-security/venv/bin/activate
+
+        python ai-security/scripts/generate_report.py
+        '''
+    }
+}
+stage('Archive AI Artifacts') {
+    steps {
+        archiveArtifacts artifacts: '''
+ai-security/models/security_model.pkl,
+ai-security/output/prediction.csv,
+ai-security/output/security_report.html
+''', fingerprint: true
+    }
+}
 
     }
 

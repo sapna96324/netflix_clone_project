@@ -29,25 +29,34 @@ pipeline {
     steps {
         sh '''
         python3 --version
-        pip3 --version
 
-        python3 -m pip install --upgrade pip
+        # Create virtual environment
+        python3 -m venv ai-security/venv
 
-        python3 -m pip install -r ai-security/requirements.txt
+        # Activate it
+        . ai-security/venv/bin/activate
+
+        # Upgrade pip inside the venv
+        pip install --upgrade pip
+
+        # Install dependencies
+        pip install -r ai-security/requirements.txt
+
+        # Verify installation
+        pip list
         '''
     }
 }
 
         stage('Merge Reports') {
+    steps {
+        sh '''
+        . ai-security/venv/bin/activate
 
-            steps {
-
-                sh '''
-                python3 ai-security/scripts/merge_reports.py
-                '''
-            }
-
-        }
+        python ai-security/scripts/merge_reports.py
+        '''
+    }
+}
 
     }
 

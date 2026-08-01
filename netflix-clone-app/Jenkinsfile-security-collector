@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+
+    environment {
+        REPORT_DIR = "security/reports"
+    }
+
+    stages {
+
+        stage('Repository Ready') {
+            steps {
+                echo 'Repository already checked out by Jenkins'
+            }
+        }
+
+        stage('Prepare Reports Folder') {
+            steps {
+                sh '''
+                rm -rf ${REPORT_DIR}
+                mkdir -p ${REPORT_DIR}
+                chmod -R 777 ${REPORT_DIR}
+                '''
+            }
+        }
+
+        stage('Verify Security Reports') {
+            steps {
+                sh '''
+                test -f security/sonarqube/sonar-report.json
+                test -f security/trivy/trivy-report.json
+                test -f security/dependency-check/dependency-check-report.json
+                test -f security/zap/zap-report.json
+
+                echo "All Security Reports Found"
+                '''
+            }
+        }
+
+        stage('Create Security Summary') {
+            steps {
+                sh '''
+cat > ${REPORT_DIR}/security-summary.json <<EOF
+{
+  "reports": {
+    "sonarqube": "security/sonarqube/sonar-report.json",
+    "trivy": "security/trivy/trivy-report.json",
+    "dependency_check": "security/dependency-check/dependency-check-report.json",
+    "zap": "security/zap/zap-report.json"
+  },
+  "generated_by": "Netflix Security Collector",
+  "status": "SUCCESS"
+}
+EOF
+
+cat ${REPORT_DIR}/security-summary.json
+'''
+            }
+        }
+
+        stage('Archive Summary') {
+            steps {
+                archiveArtifacts(
+                    artifacts: 'security/reports/*',
+                    fingerprint: true
+                )
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo "Security Summary Generated Successfully"
+        }
+
+        failure {
+            echo "Security Collector Failed"
+        }
+
+        always {
+            echo "Pipeline Finished"
+        }
+    }
+}

@@ -3,45 +3,48 @@ pipeline {
 
     environment {
         SCANNER_HOME = tool 'SonarScanner'
-        SONAR_HOST = "http://sonarqube:9000"
-        PROJECT_KEY = "Netflix-Clone"
-        REPORT_DIR = "security/sonarqube"
+        PROJECT_KEY = 'Netflix-Clone'
+        SONAR_HOST = 'http://sonarqube:9000'
+        REPORT_DIR = 'security/sonarqube'
     }
 
     stages {
 
         stage('Repository Ready') {
             steps {
-                echo 'Repository already checked out by Jenkins'
+                echo 'Repository checked out successfully.'
             }
         }
 
         stage('Prepare Report Directory') {
             steps {
                 sh '''
-                rm -rf security/sonarqube
-                mkdir -p security/sonarqube
-                chmod -R 777 security/sonarqube
+                rm -rf ${REPORT_DIR}
+                mkdir -p ${REPORT_DIR}
+                chmod -R 777 ${REPORT_DIR}
                 '''
             }
         }
 
         stage('Run SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh """
-                    ${SCANNER_HOME}/bin/sonar-scanner \
-                      -Dsonar.projectKey=${PROJECT_KEY} \
-                      -Dsonar.projectName=${PROJECT_KEY} \
-                      -Dsonar.sources=src
-                    """
+                dir('netflix-clone-app') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                        ${SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=${PROJECT_KEY} \
+                        -Dsonar.projectName=${PROJECT_KEY} \
+                        -Dsonar.sources=src
+                        """
+                    }
                 }
             }
         }
 
-        stage('Wait for SonarQube') {
+        stage('Wait for SonarQube Processing') {
             steps {
-                sleep 15
+                echo 'Waiting for SonarQube server...'
+                sleep(time: 20, unit: 'SECONDS')
             }
         }
 
@@ -50,11 +53,15 @@ pipeline {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     sh '''
                     curl -s \
-                      -u ${SONAR_TOKEN}: \
-                      "${SONAR_HOST}/api/issues/search?componentKeys=${PROJECT_KEY}" \
-                      -o security/sonarqube/sonar-report.json
+                    -u ${SONAR_TOKEN}: \
+                    "${SONAR_HOST}/api/issues/search?componentKeys=${PROJECT_KEY}" \
+                    -o ${REPORT_DIR}/sonar-report.json
 
-                    ls -lah security/sonarqube
+                    echo "==============================="
+                    echo "Generated Sonar Report"
+                    echo "==============================="
+
+                    ls -lah ${REPORT_DIR}
                     '''
                 }
             }
@@ -63,9 +70,11 @@ pipeline {
         stage('Verify Report') {
             steps {
                 sh '''
-                if [ -f security/sonarqube/sonar-report.json ]; then
+                if [ -f ${REPORT_DIR}/sonar-report.json ]; then
+                    echo ""
                     echo "SUCCESS : sonar-report.json generated"
                 else
+                    echo ""
                     echo "ERROR : sonar-report.json not found"
                     exit 1
                 fi
@@ -73,27 +82,33 @@ pipeline {
             }
         }
 
-        stage('Archive Report') {
+        stage('Archive Sonar Report') {
             steps {
-                archiveArtifacts artifacts: 'security/sonarqube/sonar-report.json',
-                                 fingerprint: true
+                archiveArtifacts(
+                    artifacts: 'security/sonarqube/sonar-report.json',
+                    fingerprint: true,
+                    allowEmptyArchive: false
+                )
             }
         }
-
     }
 
     post {
 
         success {
-            echo 'SonarQube JSON Report Generated Successfully'
+            echo "========================================"
+            echo "SonarQube JSON Report Generated"
+            echo "========================================"
         }
 
         failure {
-            echo 'SonarQube Pipeline Failed'
+            echo "========================================"
+            echo "SonarQube Pipeline Failed"
+            echo "========================================"
         }
 
         always {
-            echo 'Pipeline Finished'
+            echo "Pipeline Finished"
         }
     }
 }

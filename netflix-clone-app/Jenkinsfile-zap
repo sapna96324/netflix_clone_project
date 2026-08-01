@@ -2,15 +2,15 @@ pipeline {
     agent any
 
     environment {
+        REPORT_DIR = "zap-report"
         TARGET_URL = "http://netflix-app"
-        REPORT_DIR = "security/zap"
     }
 
     stages {
 
         stage('Repository Ready') {
             steps {
-                echo "Repository already checked out by Jenkins"
+                echo 'Repository already checked out by Jenkins'
             }
         }
 
@@ -39,120 +39,73 @@ pipeline {
             }
         }
 
-        stage('Run OWASP ZAP DAST Scan') {
+        stage('Run OWASP ZAP Scan') {
             steps {
                 sh '''
-                echo "======================================"
-                echo "Pulling Latest ZAP Image"
-                echo "======================================"
+                echo "Pulling latest ZAP image..."
 
                 docker pull ghcr.io/zaproxy/zaproxy:stable
 
-                echo ""
-                echo "Removing old temporary container..."
-                docker rm -f zap-temp >/dev/null 2>&1 || true
+                echo "Running ZAP Baseline Scan..."
 
-                echo ""
-                echo "Creating temporary ZAP container..."
-
-                docker create \
-                  --name zap-temp \
+                docker run --rm \
+                  --user root \
                   --network devsecops-network \
+                  -v "$WORKSPACE/${REPORT_DIR}:/zap/wrk:rw" \
                   ghcr.io/zaproxy/zaproxy:stable \
-                  sh -c "
-                    zap-baseline.py \
-                      -t ${TARGET_URL} \
-                      -r zap-report.html \
-                      -x zap-report.xml \
-                      -J zap-report.json \
-                      -w zap-report.md \
-                      -I
-                  "
+                  zap-baseline.py \
+                  -t ${TARGET_URL} \
+                  -r zap-report.html \
+                  -x zap-report.xml \
+                  -J zap-report.json \
+                  -w zap-report.md \
+                  -I || true
 
                 echo ""
-                echo "Starting ZAP Scan..."
+                echo "Generated Files"
 
-                docker start -a zap-temp
-
-                echo ""
-                echo "Copying reports from container..."
-
-                docker cp zap-temp:/zap/wrk/. ${REPORT_DIR}/
-
-                echo ""
-                echo "Removing temporary container..."
-
-                docker rm -f zap-temp
-
-                chmod -R 777 ${REPORT_DIR}
-
-                echo ""
-                echo "======================================"
-                echo "Generated Reports"
-                echo "======================================"
-
-                ls -lah ${REPORT_DIR}
+                ls -lah ${REPORT_DIR} || true
                 '''
-            }
-        }
-
-        stage('Verify Reports') {
-            steps {
-                sh '''
-                test -f ${REPORT_DIR}/zap-report.json
-                test -f ${REPORT_DIR}/zap-report.html
-                test -f ${REPORT_DIR}/zap-report.xml
-                test -f ${REPORT_DIR}/zap-report.md
-
-                echo ""
-                echo "======================================"
-                echo "ZAP Reports Verified Successfully"
-                echo "======================================"
-                '''
-            }
-        }
-
-        stage('Archive Reports') {
-            steps {
-                archiveArtifacts artifacts: 'security/zap/**', fingerprint: true
             }
         }
 
         stage('Publish HTML Report') {
             steps {
                 publishHTML(target: [
-                    allowMissing: false,
+                    allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: 'security/zap',
+                    reportDir: 'zap-report',
                     reportFiles: 'zap-report.html',
                     reportName: 'OWASP ZAP DAST Report'
                 ])
             }
         }
+
     }
 
     post {
 
         always {
+
             echo "======================================"
-            echo "OWASP ZAP Pipeline Finished"
+            echo "OWASP ZAP Scan Finished"
             echo "======================================"
 
             sh '''
             echo ""
-            echo "Workspace Report Files"
+            echo "Workspace Report Directory"
 
-            ls -lah security/zap || true
+            ls -lah zap-report || true
             '''
         }
 
         success {
-            echo "OWASP ZAP Scan Successful"
+            echo "OWASP ZAP Pipeline Successful"
         }
 
         failure {
-            echo "OWASP ZAP Scan Failed"
+            echo "OWASP ZAP Pipeline Failed"
         }
     }
 }

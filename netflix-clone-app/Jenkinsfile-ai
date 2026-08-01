@@ -26,17 +26,17 @@ pipeline {
         }
 
         stage('Install Python Packages') {
+    steps {
+        sh '''
+        python3 --version
+        pip3 --version
 
-            steps {
+        python3 -m pip install --upgrade pip
 
-                sh '''
-                python3 --version
-
-                pip3 install -r ai-security/requirements.txt
-                '''
-            }
-
-        }
+        python3 -m pip install -r ai-security/requirements.txt
+        '''
+    }
+}
 
         stage('Merge Reports') {
 

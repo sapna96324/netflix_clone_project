@@ -1,31 +1,69 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "netflix-clone:v1"
+        REPORT_DIR = "security/trivy"
+    }
+
     stages {
 
-        stage('GitHub Checkout') {
+        stage('Checkout') {
             steps {
-                echo 'Repository checked out from GitHub'
+                checkout scm
             }
         }
 
-        stage('Trivy File System Scan') {
+        stage('Create Report Directory') {
             steps {
-                dir('netflix-clone-app') {
-                    sh '''
-                    trivy fs \
-                    --format table \
-                    --severity HIGH,CRITICAL \
-                    .
-                    '''
-                }
+                sh '''
+                mkdir -p ${REPORT_DIR}
+                chmod -R 777 ${REPORT_DIR}
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                docker pull aquasec/trivy:latest
+
+                docker run --rm \
+                  -v /var/run/docker.sock:/var/run/docker.sock \
+                  -v $WORKSPACE/${REPORT_DIR}:/report \
+                  aquasec/trivy:latest image \
+                  --format json \
+                  --output /report/trivy-report.json \
+                  ${IMAGE_NAME}
+                '''
+            }
+        }
+
+        stage('Verify Report') {
+            steps {
+                sh '''
+                echo "==========================="
+                echo "Generated Trivy Report"
+                echo "==========================="
+
+                ls -lah ${REPORT_DIR}
+
+                test -f ${REPORT_DIR}/trivy-report.json
+                '''
+            }
+        }
+
+        stage('Archive Report') {
+            steps {
+                archiveArtifacts artifacts: 'security/trivy/trivy-report.json', fingerprint: true
             }
         }
     }
 
     post {
+
         success {
-            echo 'Trivy Scan Successful'
+            echo 'Trivy JSON Report Generated Successfully'
         }
 
         failure {

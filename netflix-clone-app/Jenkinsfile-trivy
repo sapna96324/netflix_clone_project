@@ -24,14 +24,26 @@ pipeline {
             }
         }
 
-        stage('Pull Trivy Image') {
-            steps {
-                sh '''
-                echo "Pulling latest Trivy image..."
+       stage('Check Trivy Image') {
+    steps {
+        retry(3) {
+            sh '''
+            echo "======================================"
+            echo "Checking Trivy Docker Image"
+            echo "======================================"
+
+            if docker image inspect aquasec/trivy:latest >/dev/null 2>&1; then
+                echo "Using existing Trivy image."
+            else
+                echo "Downloading Trivy image..."
                 docker pull aquasec/trivy:latest
-                '''
-            }
+            fi
+
+            echo "Trivy image is ready."
+            '''
         }
+    }
+}
 
         stage('Run Trivy Scan') {
             steps {

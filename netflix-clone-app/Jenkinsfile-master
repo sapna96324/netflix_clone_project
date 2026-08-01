@@ -20,7 +20,7 @@ pipeline {
 
         stage('Dependency Check') {
             steps {
-                build job: 'Netflix-DependencyCheck-Pipeline',
+                build job: 'Netflix-OWASP-Pipeline',
                       wait: true
             }
         }

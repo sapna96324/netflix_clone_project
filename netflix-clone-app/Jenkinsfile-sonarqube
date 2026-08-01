@@ -8,18 +8,20 @@ pipeline {
         REPORT_DIR = "security/sonarqube"
     }
 
-    stage('Repository Ready') {
-    steps {
-        echo "Repository already checked out by Jenkins"
-    }
-}
+    stages {
+
+        stage('Repository Ready') {
+            steps {
+                echo 'Repository already checked out by Jenkins'
+            }
+        }
 
         stage('Prepare Report Directory') {
             steps {
                 sh '''
-                rm -rf ${REPORT_DIR}
-                mkdir -p ${REPORT_DIR}
-                chmod -R 777 ${REPORT_DIR}
+                rm -rf security/sonarqube
+                mkdir -p security/sonarqube
+                chmod -R 777 security/sonarqube
                 '''
             }
         }
@@ -29,9 +31,9 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     sh """
                     ${SCANNER_HOME}/bin/sonar-scanner \
-                    -Dsonar.projectKey=${PROJECT_KEY} \
-                    -Dsonar.projectName=${PROJECT_KEY} \
-                    -Dsonar.sources=src
+                      -Dsonar.projectKey=${PROJECT_KEY} \
+                      -Dsonar.projectName=${PROJECT_KEY} \
+                      -Dsonar.sources=src
                     """
                 }
             }
@@ -39,7 +41,7 @@ pipeline {
 
         stage('Wait for SonarQube') {
             steps {
-                sleep(time: 15, unit: 'SECONDS')
+                sleep 15
             }
         }
 
@@ -48,11 +50,11 @@ pipeline {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     sh '''
                     curl -s \
-                    -u ${SONAR_TOKEN}: \
-                    "${SONAR_HOST}/api/issues/search?componentKeys=${PROJECT_KEY}" \
-                    -o ${REPORT_DIR}/sonar-report.json
+                      -u ${SONAR_TOKEN}: \
+                      "${SONAR_HOST}/api/issues/search?componentKeys=${PROJECT_KEY}" \
+                      -o security/sonarqube/sonar-report.json
 
-                    ls -lah ${REPORT_DIR}
+                    ls -lah security/sonarqube
                     '''
                 }
             }
@@ -61,7 +63,7 @@ pipeline {
         stage('Verify Report') {
             steps {
                 sh '''
-                if [ -f ${REPORT_DIR}/sonar-report.json ]; then
+                if [ -f security/sonarqube/sonar-report.json ]; then
                     echo "SUCCESS : sonar-report.json generated"
                 else
                     echo "ERROR : sonar-report.json not found"
@@ -77,6 +79,7 @@ pipeline {
                                  fingerprint: true
             }
         }
+
     }
 
     post {

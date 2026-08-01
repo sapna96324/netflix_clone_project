@@ -1,7 +1,15 @@
 import json
 import os
 
-ARTIFACT_DIR = "/var/jenkins_home/devsecops-artifacts"
+BASE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..")
+)
+
+ARTIFACT_DIR = os.path.join(
+    BASE_DIR,
+    "data",
+    "reports"
+)
 
 REPORTS = {
     "sonarqube": os.path.join(

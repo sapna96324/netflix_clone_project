@@ -1,35 +1,29 @@
 import json
 import os
 
-BASE_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")
-)
+ARTIFACT_DIR = "/var/jenkins_home/devsecops-artifacts"
 
 REPORTS = {
     "sonarqube": os.path.join(
-        BASE_DIR,
-        "security",
+        ARTIFACT_DIR,
         "sonarqube",
         "sonar-report.json"
     ),
 
     "trivy": os.path.join(
-        BASE_DIR,
-        "security",
+        ARTIFACT_DIR,
         "trivy",
         "trivy-report.json"
     ),
 
     "dependency_check": os.path.join(
-        BASE_DIR,
-        "security",
+        ARTIFACT_DIR,
         "dependency-check",
         "dependency-check-report.json"
     ),
 
     "zap": os.path.join(
-        BASE_DIR,
-        "security",
+        ARTIFACT_DIR,
         "zap",
         "zap-report.json"
     )
@@ -37,40 +31,62 @@ REPORTS = {
 
 merged = {}
 
-for name, path in REPORTS.items():
+for tool, path in REPORTS.items():
 
-    print(f"Reading {name}...")
+    print(f"Reading {tool}...")
 
     if os.path.exists(path):
 
         try:
 
             with open(path, "r", encoding="utf-8") as f:
-                merged[name] = json.load(f)
+                merged[tool] = json.load(f)
 
-            print(f"✓ {name} loaded")
+            print(f"✓ Loaded {tool}")
 
         except Exception as e:
 
-            print(f"Error reading {name}: {e}")
+            print(f"Error reading {tool}: {e}")
 
-            merged[name] = {}
+            merged[tool] = {}
 
     else:
 
         print(f"Missing: {path}")
 
-        merged[name] = {}
+        merged[tool] = {}
+
+BASE = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
+)
 
 OUTPUT = os.path.join(
-    BASE_DIR,
-    "ai-security",
+    BASE,
     "data",
     "merged_reports.json"
 )
 
-with open(OUTPUT, "w", encoding="utf-8") as f:
-    json.dump(merged, f, indent=4)
+os.makedirs(
+    os.path.dirname(OUTPUT),
+    exist_ok=True
+)
 
-print("\nMerged report created successfully")
+with open(
+    OUTPUT,
+    "w",
+    encoding="utf-8"
+) as f:
+
+    json.dump(
+        merged,
+        f,
+        indent=4
+    )
+
+print("")
+print("======================================")
+print("Merged report created successfully")
 print(OUTPUT)
+print("======================================")

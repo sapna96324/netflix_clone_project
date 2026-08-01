@@ -27,6 +27,7 @@ pipeline {
         stage('Pull Trivy Image') {
             steps {
                 sh '''
+                echo "Pulling latest Trivy image..."
                 docker pull aquasec/trivy:latest
                 '''
             }
@@ -35,13 +36,17 @@ pipeline {
         stage('Run Trivy Scan') {
             steps {
                 sh '''
+                echo "Starting Trivy Scan..."
+
                 docker run --rm \
                   -v /var/run/docker.sock:/var/run/docker.sock \
-                  -v $WORKSPACE/${REPORT_DIR}:/report \
-                  aquasec/trivy:latest image \
+                  aquasec/trivy:latest \
+                  image \
                   --format json \
-                  --output /report/trivy-report.json \
-                  ${IMAGE_NAME} || true
+                  ${IMAGE_NAME} \
+                  > ${REPORT_DIR}/trivy-report.json
+
+                chmod 777 ${REPORT_DIR}/trivy-report.json
                 '''
             }
         }
@@ -49,16 +54,19 @@ pipeline {
         stage('Verify Report') {
             steps {
                 sh '''
-                echo "=================================="
-                echo "Generated Files"
-                echo "=================================="
+                echo ""
+                echo "========================================"
+                echo "Generated Trivy Report"
+                echo "========================================"
 
                 ls -lah ${REPORT_DIR}
 
                 if [ -f ${REPORT_DIR}/trivy-report.json ]; then
-                    echo "SUCCESS : trivy-report.json generated"
+                    echo ""
+                    echo "SUCCESS: trivy-report.json generated."
                 else
-                    echo "ERROR : trivy-report.json not found"
+                    echo ""
+                    echo "ERROR: trivy-report.json not found!"
                     exit 1
                 fi
                 '''
@@ -79,19 +87,22 @@ pipeline {
     post {
 
         success {
-            echo '=================================='
-            echo 'Trivy JSON Report Generated'
-            echo '=================================='
+            echo ""
+            echo "========================================"
+            echo "Trivy JSON Report Generated Successfully"
+            echo "========================================"
         }
 
         failure {
-            echo '=================================='
-            echo 'Trivy Pipeline Failed'
-            echo '=================================='
+            echo ""
+            echo "========================================"
+            echo "Trivy Pipeline Failed"
+            echo "========================================"
         }
 
         always {
-            echo 'Pipeline Finished'
+            echo ""
+            echo "Pipeline Finished"
         }
     }
 }

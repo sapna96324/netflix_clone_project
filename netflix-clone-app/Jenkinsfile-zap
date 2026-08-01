@@ -1,15 +1,34 @@
 pipeline {
     agent any
 
+    environment {
+        REPORT_DIR = "zap-report"
+        TARGET_URL = "http://netflix-app"
+    }
+
     stages {
 
         stage('Check Netflix Application') {
             steps {
                 sh '''
+                echo "Checking Netflix container..."
+
                 docker ps | grep netflix-app || {
-                    echo "Netflix application is not running!"
+                    echo "Netflix container is not running!"
                     exit 1
                 }
+
+                echo "Container Found."
+                '''
+            }
+        }
+
+        stage('Prepare Report Directory') {
+            steps {
+                sh '''
+                rm -rf $REPORT_DIR
+                mkdir -p $REPORT_DIR
+                chmod -R 777 $REPORT_DIR
                 '''
             }
         }
@@ -17,36 +36,40 @@ pipeline {
         stage('Run OWASP ZAP DAST Scan') {
             steps {
                 sh '''
-                rm -rf zap-report
-                mkdir -p zap-report
-                chmod -R 777 zap-report
+                echo "Pulling latest ZAP image..."
 
-                docker pull zaproxy/zap-stable
+                docker pull ghcr.io/zaproxy/zaproxy:stable
+
+                echo "Starting ZAP Scan..."
 
                 docker run --rm \
                   --user root \
                   --network devsecops-network \
-                  -v "$WORKSPACE/zap-report:/zap/wrk:rw" \
-                  zaproxy/zap-stable \
+                  -v "$WORKSPACE/$REPORT_DIR:/zap/wrk:rw" \
+                  ghcr.io/zaproxy/zaproxy:stable \
                   zap-baseline.py \
-                  -t http://netflix-app \
+                  -t $TARGET_URL \
                   -r zap-report.html \
                   -x zap-report.xml \
                   -J zap-report.json \
                   -w zap-report.md \
-                  -I
+                  -I || true
 
-                chmod -R 777 zap-report
+                chmod -R 777 $REPORT_DIR
 
-                echo "===== Generated Reports ====="
-                ls -lah zap-report
+                echo ""
+                echo "=============================="
+                echo "Generated Report Files"
+                echo "=============================="
+
+                ls -lah $WORKSPACE/$REPORT_DIR || true
                 '''
             }
         }
 
         stage('Archive Reports') {
             steps {
-                archiveArtifacts artifacts: 'zap-report/*', fingerprint: true
+                archiveArtifacts artifacts: 'zap-report/**', allowEmptyArchive: true
             }
         }
 
@@ -62,19 +85,33 @@ pipeline {
                 ])
             }
         }
+
     }
 
     post {
+
         always {
-            echo 'OWASP ZAP Scan Finished'
+            echo "==================================="
+            echo "OWASP ZAP Scan Finished"
+            echo "==================================="
+
+            sh '''
+            echo ""
+            echo "Workspace Reports:"
+            ls -lah zap-report || true
+            '''
         }
 
         success {
-            echo 'DAST Scan Completed Successfully'
+            echo "DAST Scan Completed Successfully"
+        }
+
+        unstable {
+            echo "DAST Scan Completed With Warnings"
         }
 
         failure {
-            echo 'DAST Scan Failed'
+            echo "DAST Scan Failed"
         }
     }
 }

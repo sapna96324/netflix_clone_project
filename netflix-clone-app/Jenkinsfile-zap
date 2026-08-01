@@ -1,9 +1,13 @@
 pipeline {
     agent any
 
+    environment {
+        REPORT_DIR = "zap-report"
+    }
+
     stages {
 
-        stage('Check Application') {
+        stage('Check Netflix Application') {
             steps {
                 sh '''
                 docker ps | grep netflix-app || {
@@ -14,34 +18,52 @@ pipeline {
             }
         }
 
-        stage('Run OWASP ZAP Scan') {
+        stage('Create Report Directory') {
             steps {
                 sh '''
-                mkdir -p zap-report
-                chmod -R 777 zap-report
-
-                docker run --rm \
-                  --user root \
-                  --network devsecops-network \
-                  -v $WORKSPACE/zap-report:/zap/wrk \
-                  zaproxy/zap-stable \
-                  zap-baseline.py \
-                  -t http://netflix-app \
-                  -r zap-report.html \
-                  -I
+                rm -rf $REPORT_DIR
+                mkdir -p $REPORT_DIR
+                chmod -R 777 $REPORT_DIR
                 '''
             }
         }
 
-        stage('Publish ZAP Report') {
+        stage('Run OWASP ZAP Baseline Scan') {
             steps {
-                publishHTML([
-                    allowMissing: false,
+                sh '''
+                docker run --rm \
+                  --network devsecops-network \
+                  -v $WORKSPACE/$REPORT_DIR:/zap/wrk:rw \
+                  ghcr.io/zaproxy/zaproxy:stable \
+                  zap-baseline.py \
+                  -t http://netflix-app \
+                  -r zap-report.html \
+                  -x zap-report.xml \
+                  -J zap-report.json \
+                  -w zap-report.md \
+                  -I
+
+                echo "========= REPORT FILES ========="
+                ls -lah $REPORT_DIR
+                '''
+            }
+        }
+
+        stage('Archive Reports') {
+            steps {
+                archiveArtifacts artifacts: 'zap-report/*', fingerprint: true
+            }
+        }
+
+        stage('Publish HTML Report') {
+            steps {
+                publishHTML(target: [
+                    allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
                     reportDir: 'zap-report',
                     reportFiles: 'zap-report.html',
-                    reportName: 'OWASP ZAP Report'
+                    reportName: 'OWASP ZAP DAST Report'
                 ])
             }
         }
@@ -50,15 +72,15 @@ pipeline {
     post {
 
         always {
-            archiveArtifacts artifacts: 'zap-report/*', allowEmptyArchive: true
+            echo "OWASP ZAP Scan Finished"
         }
 
         success {
-            echo 'DAST Scan Completed Successfully!'
+            echo "DAST Scan Completed Successfully"
         }
 
         failure {
-            echo 'DAST Scan Failed!'
+            echo "DAST Scan Failed"
         }
     }
 }

@@ -38,6 +38,15 @@ stage('Run ZAP Scan') {
 
         docker pull ghcr.io/zaproxy/zaproxy:stable
 
+stage('Run ZAP Scan') {
+    steps {
+        sh '''
+        echo "======================================"
+        echo "Pulling ZAP Docker Image"
+        echo "======================================"
+
+        docker pull ghcr.io/zaproxy/zaproxy:stable
+
         echo ""
         echo "======================================"
         echo "Running ZAP Baseline Scan"
@@ -49,21 +58,29 @@ stage('Run ZAP Scan') {
           -v "$WORKSPACE/${REPORT_DIR}:/zap/wrk" \
           ghcr.io/zaproxy/zaproxy:stable \
           zap-baseline.py \
+          --autooff \
           -t ${TARGET_URL} \
           -J zap-report.json \
           -I || true
 
         echo ""
         echo "======================================"
-        echo "Generated Files"
+        echo "Listing generated reports"
+        echo "======================================"
+
+        find ${REPORT_DIR} -type f
+
+        echo ""
+        echo "======================================"
+        echo "Directory Contents"
         echo "======================================"
 
         ls -lah ${REPORT_DIR}
-
-        test -f ${REPORT_DIR}/zap-report.json
         '''
     }
 }
+      
+
         stage('Verify Report') {
             steps {
                 sh '''

@@ -8,13 +8,11 @@ pipeline {
         REPORT_DIR = "security/sonarqube"
     }
 
-    stages {
-
-        stage('Checkout Source') {
-            steps {
-                checkout scm
-            }
-        }
+    stage('Repository Ready') {
+    steps {
+        echo "Repository already checked out by Jenkins"
+    }
+}
 
         stage('Prepare Report Directory') {
             steps {

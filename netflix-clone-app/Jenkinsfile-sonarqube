@@ -3,39 +3,96 @@ pipeline {
 
     environment {
         SCANNER_HOME = tool 'SonarScanner'
+        SONAR_HOST = "http://sonarqube:9000"
+        PROJECT_KEY = "Netflix-Clone"
+        REPORT_DIR = "security/sonarqube"
     }
 
     stages {
 
-        stage('GitHub Checkout') {
+        stage('Checkout Source') {
             steps {
-                echo 'Repository checked out from GitHub'
+                checkout scm
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('Prepare Report Directory') {
             steps {
-                dir('netflix-clone-app') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh """
-                        ${SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=Netflix-Clone \
-                        -Dsonar.projectName=Netflix-Clone \
-                        -Dsonar.sources=src
-                        """
-                    }
+                sh '''
+                rm -rf ${REPORT_DIR}
+                mkdir -p ${REPORT_DIR}
+                chmod -R 777 ${REPORT_DIR}
+                '''
+            }
+        }
+
+        stage('Run SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh """
+                    ${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectKey=${PROJECT_KEY} \
+                    -Dsonar.projectName=${PROJECT_KEY} \
+                    -Dsonar.sources=src
+                    """
                 }
+            }
+        }
+
+        stage('Wait for SonarQube') {
+            steps {
+                sleep(time: 15, unit: 'SECONDS')
+            }
+        }
+
+        stage('Export SonarQube JSON Report') {
+            steps {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                    curl -s \
+                    -u ${SONAR_TOKEN}: \
+                    "${SONAR_HOST}/api/issues/search?componentKeys=${PROJECT_KEY}" \
+                    -o ${REPORT_DIR}/sonar-report.json
+
+                    ls -lah ${REPORT_DIR}
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Report') {
+            steps {
+                sh '''
+                if [ -f ${REPORT_DIR}/sonar-report.json ]; then
+                    echo "SUCCESS : sonar-report.json generated"
+                else
+                    echo "ERROR : sonar-report.json not found"
+                    exit 1
+                fi
+                '''
+            }
+        }
+
+        stage('Archive Report') {
+            steps {
+                archiveArtifacts artifacts: 'security/sonarqube/sonar-report.json',
+                                 fingerprint: true
             }
         }
     }
 
     post {
+
         success {
-            echo 'SonarQube Analysis Successful'
+            echo 'SonarQube JSON Report Generated Successfully'
         }
 
         failure {
-            echo 'SonarQube Analysis Failed'
+            echo 'SonarQube Pipeline Failed'
+        }
+
+        always {
+            echo 'Pipeline Finished'
         }
     }
 }

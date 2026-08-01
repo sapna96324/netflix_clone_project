@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REPORT_DIR = "security/zap"
+        REPORT_DIR = "zap-report"
         TARGET_URL = "http://netflix-app"
     }
 
@@ -35,6 +35,10 @@ pipeline {
                 rm -rf ${REPORT_DIR}
                 mkdir -p ${REPORT_DIR}
                 chmod -R 777 ${REPORT_DIR}
+
+                rm -rf security/zap
+                mkdir -p security/zap
+                chmod -R 777 security/zap
                 '''
             }
         }
@@ -63,11 +67,19 @@ pipeline {
                 chmod -R 777 ${REPORT_DIR}
 
                 echo ""
-                echo "=================================="
-                echo "Generated ZAP Reports"
-                echo "=================================="
-
+                echo "===== Generated Reports ====="
                 ls -lah ${REPORT_DIR}
+
+                echo ""
+                echo "Copying reports to security/zap..."
+
+                cp -f ${REPORT_DIR}/* security/zap/
+
+                chmod -R 777 security/zap
+
+                echo ""
+                echo "===== security/zap ====="
+                ls -lah security/zap
                 '''
             }
         }
@@ -75,7 +87,7 @@ pipeline {
         stage('Verify Reports') {
             steps {
                 sh '''
-                if [ -f ${REPORT_DIR}/zap-report.json ]; then
+                if [ -f security/zap/zap-report.json ]; then
                     echo "SUCCESS : zap-report.json generated"
                 else
                     echo "ERROR : zap-report.json not found"
@@ -89,8 +101,7 @@ pipeline {
             steps {
                 archiveArtifacts(
                     artifacts: 'security/zap/*',
-                    fingerprint: true,
-                    allowEmptyArchive: false
+                    fingerprint: true
                 )
             }
         }
@@ -130,7 +141,11 @@ pipeline {
 
             sh '''
             echo ""
-            echo "Workspace Reports:"
+            echo "===== zap-report ====="
+            ls -lah zap-report || true
+
+            echo ""
+            echo "===== security/zap ====="
             ls -lah security/zap || true
             '''
         }

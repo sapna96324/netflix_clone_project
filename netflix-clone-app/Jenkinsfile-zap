@@ -29,28 +29,41 @@ pipeline {
             }
         }
 
-        stage('Run ZAP Scan') {
-            steps {
-                sh '''
-                echo "Pulling ZAP Docker Image..."
+stage('Run ZAP Scan') {
+    steps {
+        sh '''
+        echo "======================================"
+        echo "Pulling ZAP Docker Image"
+        echo "======================================"
 
-                docker pull ghcr.io/zaproxy/zaproxy:stable
+        docker pull ghcr.io/zaproxy/zaproxy:stable
 
-                echo "Running ZAP Baseline Scan..."
+        echo ""
+        echo "======================================"
+        echo "Running ZAP Baseline Scan"
+        echo "======================================"
 
-                docker run --rm \
-                  --user root \
-                  --network devsecops-network \
-                  -v "$WORKSPACE/${REPORT_DIR}:/zap/wrk" \
-                  ghcr.io/zaproxy/zaproxy:stable \
-                  zap-baseline.py \
-                  -t ${TARGET_URL} \
-                  -J zap-report.json \
-                  -I || true
-                '''
-            }
-        }
+        docker run --rm \
+          --user root \
+          --network devsecops-network \
+          -v "$WORKSPACE/${REPORT_DIR}:/zap/wrk" \
+          ghcr.io/zaproxy/zaproxy:stable \
+          zap-baseline.py \
+          -t ${TARGET_URL} \
+          -J zap-report.json \
+          -I || true
 
+        echo ""
+        echo "======================================"
+        echo "Generated Files"
+        echo "======================================"
+
+        ls -lah ${REPORT_DIR}
+
+        test -f ${REPORT_DIR}/zap-report.json
+        '''
+    }
+}
         stage('Verify Report') {
             steps {
                 sh '''

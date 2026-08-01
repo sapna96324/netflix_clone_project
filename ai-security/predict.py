@@ -1,23 +1,29 @@
-import json
 import joblib
 import pandas as pd
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
-model = joblib.load(BASE_DIR / "models" / "security_model.pkl")
+MODEL_FILE = BASE_DIR / "models" / "security_model.pkl"
 
-dataset = pd.read_csv(BASE_DIR / "data" / "training_dataset.csv")
+OUTPUT_DIR = BASE_DIR / "output"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-prediction = model.predict(dataset[["records"]])
+OUTPUT_FILE = OUTPUT_DIR / "prediction.csv"
 
-dataset["prediction"] = prediction
+DATASET = BASE_DIR / "data" / "training_dataset.csv"
 
-output = BASE_DIR / "output" / "prediction.json"
+model = joblib.load(MODEL_FILE)
 
-dataset.to_json(output, orient="records", indent=4)
+df = pd.read_csv(DATASET)
+
+prediction = model.predict(df[["records"]])
+
+df["prediction"] = prediction
+
+df.to_csv(OUTPUT_FILE, index=False)
 
 print("=" * 50)
 print("Prediction Completed")
-print(output)
+print(f"Prediction saved at: {OUTPUT_FILE}")
 print("=" * 50)

@@ -9,16 +9,19 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                dir('netflix-clone-app') {
-                    sh '''
-                    docker build \
---build-arg TMDB_V3_API_KEY=1cc6cbfc419ac84dec89bb8b9c51e49b \
--t netflix-clone:v1 .
-                    '''
-                }
-            }
+     stage('Build Docker Image') {
+    steps {
+        withCredentials([
+            string(credentialsId: 'tmdb-api-key', variable: 'TMDB_KEY')
+        ]) {
+            sh '''
+            docker build \
+            --build-arg TMDB_V3_API_KEY=$TMDB_KEY \
+            -t netflix-clone:v1 .
+            '''
+        }
+    }
+}
         }
 
         stage('Trivy Image Scan') {
@@ -31,21 +34,24 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
-            steps {
-                sh '''
-                docker rm -f netflix-app || true
+        stage('Run Docker Container') {
+    steps {
+        sh '''
+        docker stop netflix-app || true
+        docker rm -f netflix-app || true
 
-                docker run -d \
-                --name netflix-app \
-                -p 3000:80 \
-                netflix-clone:v1
-                '''
-            }
-        }
+        docker run -d \
+          --name netflix-app \
+          --network devsecops-network \
+          -p 3000:80 \
+          netflix-clone:v1
+        '''
+    }
+}
     }
 
     post {
+
         success {
             echo 'Docker Pipeline Successful'
         }

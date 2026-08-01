@@ -1,0 +1,6 @@
+{
+    "sonarqube": {},
+    "trivy": {},
+    "dependency_check": {},
+    "zap": {}
+}

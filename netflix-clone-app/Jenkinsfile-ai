@@ -1,0 +1,70 @@
+pipeline {
+
+    agent any
+
+    stages {
+
+        stage('Repository Ready') {
+            steps {
+                echo 'Repository checked out by Jenkins'
+            }
+        }
+
+        stage('Verify AI Module') {
+            steps {
+
+                sh '''
+                echo "Checking AI Module..."
+
+                ls -lah
+
+                test -d ai-security
+
+                echo "AI Module Found"
+                '''
+            }
+        }
+
+        stage('Install Python Packages') {
+
+            steps {
+
+                sh '''
+                python3 --version
+
+                pip3 install -r ai-security/requirements.txt
+                '''
+            }
+
+        }
+
+        stage('Merge Reports') {
+
+            steps {
+
+                sh '''
+                python3 ai-security/scripts/merge_reports.py
+                '''
+            }
+
+        }
+
+    }
+
+    post {
+
+        success {
+
+            echo "AI Pipeline Ready"
+
+        }
+
+        failure {
+
+            echo "AI Pipeline Failed"
+
+        }
+
+    }
+
+}

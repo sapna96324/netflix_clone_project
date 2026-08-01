@@ -1,55 +1,15 @@
 pipeline {
     agent any
 
-    environment {
-        REPORT_DIR = "zap-report"
-    }
-
     stages {
 
         stage('Check Netflix Application') {
             steps {
                 sh '''
                 docker ps | grep netflix-app || {
-                    echo "ERROR: Netflix application is not running!"
+                    echo "Netflix application is not running!"
                     exit 1
                 }
-                '''
-            }
-        }
-
-        stage('Create Report Directory') {
-            steps {
-                sh '''
-                rm -rf $REPORT_DIR
-                mkdir -p $REPORT_DIR
-                chmod -R 777 $REPORT_DIR
-pipeline {
-    agent any
-
-    environment {
-        REPORT_DIR = "zap-report"
-    }
-
-    stages {
-
-        stage('Check Netflix Application') {
-            steps {
-                sh '''
-                docker ps | grep netflix-app || {
-                    echo "ERROR: Netflix application is not running!"
-                    exit 1
-                }
-                '''
-            }
-        }
-
-        stage('Create Report Directory') {
-            steps {
-                sh '''
-                rm -rf $REPORT_DIR
-                mkdir -p $REPORT_DIR
-                chmod -R 777 $REPORT_DIR
                 '''
             }
         }
@@ -57,12 +17,16 @@ pipeline {
         stage('Run OWASP ZAP DAST Scan') {
             steps {
                 sh '''
+                rm -rf zap-report
+                mkdir -p zap-report
+                chmod -R 777 zap-report
+
                 docker pull zaproxy/zap-stable
 
                 docker run --rm \
                   --user root \
                   --network devsecops-network \
-                  -v $WORKSPACE/$REPORT_DIR:/zap/wrk:rw \
+                  -v "$WORKSPACE/zap-report:/zap/wrk:rw" \
                   zaproxy/zap-stable \
                   zap-baseline.py \
                   -t http://netflix-app \
@@ -72,13 +36,10 @@ pipeline {
                   -w zap-report.md \
                   -I
 
-                chmod -R 777 $REPORT_DIR
+                chmod -R 777 zap-report
 
-                echo "======================================"
-                echo "Generated ZAP Reports"
-                echo "======================================"
-
-                ls -lah $REPORT_DIR
+                echo "===== Generated Reports ====="
+                ls -lah zap-report
                 '''
             }
         }
@@ -104,11 +65,8 @@ pipeline {
     }
 
     post {
-
         always {
-            echo '======================================'
             echo 'OWASP ZAP Scan Finished'
-            echo '======================================'
         }
 
         success {

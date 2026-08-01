@@ -1,11 +1,12 @@
 pipeline {
     agent any
 
-    environment {
-        REPORT_DIR = "zap-report"
-        TARGET_URL = "http://netflix-app"
-    }
+environment {
+    REPORT_DIR = "zap-report"
+    TARGET_URL = "http://netflix-app"
 
+    ARTIFACT_DIR = "/var/jenkins_home/devsecops-artifacts/zap"
+}
     stages {
 
         stage('Repository Ready') {
@@ -81,6 +82,23 @@ pipeline {
                 ])
             }
         }
+stage('Publish JSON Report') {
+    steps {
+        sh '''
+        mkdir -p ${ARTIFACT_DIR}
+
+        cp ${REPORT_DIR}/zap-report.json \
+           ${ARTIFACT_DIR}/
+
+        echo ""
+        echo "===================================="
+        echo "Published ZAP JSON Report"
+        echo "===================================="
+
+        ls -lah ${ARTIFACT_DIR}
+        '''
+    }
+}
 
     }
 

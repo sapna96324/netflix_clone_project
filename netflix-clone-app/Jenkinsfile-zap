@@ -1,0 +1,53 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Check Application') {
+            steps {
+                sh '''
+                docker ps | grep netflix-app
+                '''
+            }
+        }
+
+        stage('Run OWASP ZAP Scan') {
+            steps {
+                sh '''
+                mkdir -p zap-report
+
+                docker run --rm \
+                  --network host \
+                  -v $WORKSPACE/zap-report:/zap/wrk \
+                  zaproxy/zap-stable \
+                  zap-baseline.py \
+                  -t http://host.docker.internal:3000 \
+                  -r zap-report.html
+                '''
+            }
+        }
+
+        stage('Publish Report') {
+            steps {
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'zap-report',
+                    reportFiles: 'zap-report.html',
+                    reportName: 'OWASP ZAP Report'
+                ])
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "DAST Scan Completed Successfully"
+        }
+
+        failure {
+            echo "DAST Scan Failed"
+        }
+    }
+}

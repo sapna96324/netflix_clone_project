@@ -11,14 +11,16 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'tmdb-api-key', variable: 'TMDB_KEY')
-                ]) {
-                    sh '''
-                    docker build \
-                    --build-arg TMDB_V3_API_KEY=$TMDB_KEY \
-                    -t netflix-clone:v1 .
-                    '''
+                dir('netflix-clone-app') {
+                    withCredentials([
+                        string(credentialsId: 'tmdb-api-key', variable: 'TMDB_KEY')
+                    ]) {
+                        sh '''
+                        docker build \
+                          --build-arg TMDB_V3_API_KEY=$TMDB_KEY \
+                          -t netflix-clone:v1 .
+                        '''
+                    }
                 }
             }
         }
@@ -27,8 +29,8 @@ pipeline {
             steps {
                 sh '''
                 trivy image \
-                --severity HIGH,CRITICAL \
-                netflix-clone:v1
+                  --severity HIGH,CRITICAL \
+                  netflix-clone:v1
                 '''
             }
         }
@@ -44,6 +46,15 @@ pipeline {
                   --network devsecops-network \
                   -p 3000:80 \
                   netflix-clone:v1
+                '''
+            }
+        }
+
+        stage('Verify Container') {
+            steps {
+                sh '''
+                sleep 5
+                docker ps | grep netflix-app
                 '''
             }
         }

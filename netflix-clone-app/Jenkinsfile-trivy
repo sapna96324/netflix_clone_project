@@ -8,33 +8,40 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Source') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Create Report Directory') {
+        stage('Prepare Report Directory') {
             steps {
                 sh '''
+                rm -rf ${REPORT_DIR}
                 mkdir -p ${REPORT_DIR}
                 chmod -R 777 ${REPORT_DIR}
                 '''
             }
         }
 
-        stage('Trivy Image Scan') {
+        stage('Pull Trivy Image') {
             steps {
                 sh '''
                 docker pull aquasec/trivy:latest
+                '''
+            }
+        }
 
+        stage('Run Trivy Scan') {
+            steps {
+                sh '''
                 docker run --rm \
                   -v /var/run/docker.sock:/var/run/docker.sock \
                   -v $WORKSPACE/${REPORT_DIR}:/report \
                   aquasec/trivy:latest image \
                   --format json \
                   --output /report/trivy-report.json \
-                  ${IMAGE_NAME}
+                  ${IMAGE_NAME} || true
                 '''
             }
         }
@@ -42,20 +49,29 @@ pipeline {
         stage('Verify Report') {
             steps {
                 sh '''
-                echo "==========================="
-                echo "Generated Trivy Report"
-                echo "==========================="
+                echo "=================================="
+                echo "Generated Files"
+                echo "=================================="
 
                 ls -lah ${REPORT_DIR}
 
-                test -f ${REPORT_DIR}/trivy-report.json
+                if [ -f ${REPORT_DIR}/trivy-report.json ]; then
+                    echo "SUCCESS : trivy-report.json generated"
+                else
+                    echo "ERROR : trivy-report.json not found"
+                    exit 1
+                fi
                 '''
             }
         }
 
         stage('Archive Report') {
             steps {
-                archiveArtifacts artifacts: 'security/trivy/trivy-report.json', fingerprint: true
+                archiveArtifacts(
+                    artifacts: 'security/trivy/trivy-report.json',
+                    fingerprint: true,
+                    allowEmptyArchive: false
+                )
             }
         }
     }
@@ -63,15 +79,19 @@ pipeline {
     post {
 
         success {
-            echo 'Trivy JSON Report Generated Successfully'
+            echo '=================================='
+            echo 'Trivy JSON Report Generated'
+            echo '=================================='
         }
 
         failure {
-            echo 'Trivy Scan Failed'
+            echo '=================================='
+            echo 'Trivy Pipeline Failed'
+            echo '=================================='
         }
 
         always {
-            echo 'Trivy Pipeline Finished'
+            echo 'Pipeline Finished'
         }
     }
 }

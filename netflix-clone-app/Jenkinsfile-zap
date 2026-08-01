@@ -11,7 +11,33 @@ pipeline {
             steps {
                 sh '''
                 docker ps | grep netflix-app || {
-                    echo "Netflix application is not running!"
+                    echo "ERROR: Netflix application is not running!"
+                    exit 1
+                }
+                '''
+            }
+        }
+
+        stage('Create Report Directory') {
+            steps {
+                sh '''
+                rm -rf $REPORT_DIR
+                mkdir -p $REPORT_DIR
+                chmod -R 777 $REPORT_DIR
+pipeline {
+    agent any
+
+    environment {
+        REPORT_DIR = "zap-report"
+    }
+
+    stages {
+
+        stage('Check Netflix Application') {
+            steps {
+                sh '''
+                docker ps | grep netflix-app || {
+                    echo "ERROR: Netflix application is not running!"
                     exit 1
                 }
                 '''
@@ -28,13 +54,16 @@ pipeline {
             }
         }
 
-        stage('Run OWASP ZAP Baseline Scan') {
+        stage('Run OWASP ZAP DAST Scan') {
             steps {
                 sh '''
+                docker pull zaproxy/zap-stable
+
                 docker run --rm \
+                  --user root \
                   --network devsecops-network \
                   -v $WORKSPACE/$REPORT_DIR:/zap/wrk:rw \
-                  ghcr.io/zaproxy/zaproxy:stable \
+                  zaproxy/zap-stable \
                   zap-baseline.py \
                   -t http://netflix-app \
                   -r zap-report.html \
@@ -43,7 +72,12 @@ pipeline {
                   -w zap-report.md \
                   -I
 
-                echo "========= REPORT FILES ========="
+                chmod -R 777 $REPORT_DIR
+
+                echo "======================================"
+                echo "Generated ZAP Reports"
+                echo "======================================"
+
                 ls -lah $REPORT_DIR
                 '''
             }
@@ -72,15 +106,17 @@ pipeline {
     post {
 
         always {
-            echo "OWASP ZAP Scan Finished"
+            echo '======================================'
+            echo 'OWASP ZAP Scan Finished'
+            echo '======================================'
         }
 
         success {
-            echo "DAST Scan Completed Successfully"
+            echo 'DAST Scan Completed Successfully'
         }
 
         failure {
-            echo "DAST Scan Failed"
+            echo 'DAST Scan Failed'
         }
     }
 }

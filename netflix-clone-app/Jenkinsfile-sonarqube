@@ -6,6 +6,7 @@ pipeline {
         PROJECT_KEY = 'Netflix-Clone'
         SONAR_HOST = 'http://sonarqube:9000'
         REPORT_DIR = 'security/sonarqube'
+	ARTIFACT_DIR = '/var/jenkins_home/devsecops-artifacts/sonarqube'
     }
 
     stages {
@@ -82,6 +83,23 @@ pipeline {
             }
         }
 
+stage('Publish Report') {
+    steps {
+        sh '''
+        mkdir -p ${ARTIFACT_DIR}
+
+        cp ${REPORT_DIR}/sonar-report.json \
+           ${ARTIFACT_DIR}/
+
+        echo ""
+        echo "===================================="
+        echo "Published SonarQube Report"
+        echo "===================================="
+
+        ls -lah ${ARTIFACT_DIR}
+        '''
+    }
+}
         stage('Archive Sonar Report') {
             steps {
                 archiveArtifacts(

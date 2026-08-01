@@ -10,7 +10,7 @@ pipeline {
 
         stage('Repository Ready') {
             steps {
-                echo 'Repository already checked out by Jenkins'
+                echo "Repository already checked out by Jenkins"
             }
         }
 
@@ -35,10 +35,6 @@ pipeline {
                 rm -rf ${REPORT_DIR}
                 mkdir -p ${REPORT_DIR}
                 chmod -R 777 ${REPORT_DIR}
-
-                rm -rf security/zap
-                mkdir -p security/zap
-                chmod -R 777 security/zap
                 '''
             }
         }
@@ -46,73 +42,66 @@ pipeline {
         stage('Run OWASP ZAP DAST Scan') {
             steps {
                 sh '''
+                echo "=================================="
                 echo "Pulling latest ZAP image..."
+                echo "=================================="
+
                 docker pull ghcr.io/zaproxy/zaproxy:stable
 
-                echo "Starting ZAP Scan..."
+                echo ""
+                echo "=================================="
+                echo "Running ZAP Scan..."
+                echo "=================================="
 
                 docker run --rm \
                   --user root \
                   --network devsecops-network \
                   -v "$WORKSPACE/${REPORT_DIR}:/zap/wrk:rw" \
                   ghcr.io/zaproxy/zaproxy:stable \
-                  zap-baseline.py \
-                  -t ${TARGET_URL} \
-                  -r zap-report.html \
-                  -x zap-report.xml \
-                  -J zap-report.json \
-                  -w zap-report.md \
-                  -I || true
+                  sh -c "
+                    zap-baseline.py \
+                      -t ${TARGET_URL} \
+                      -r zap-report.html \
+                      -x zap-report.xml \
+                      -J zap-report.json \
+                      -w zap-report.md \
+                      -I
 
-                chmod -R 777 ${REPORT_DIR}
+                    echo ''
+                    echo '===== INSIDE CONTAINER ====='
+                    ls -lah /zap/wrk
+                  "
 
                 echo ""
-                echo "===== Generated Reports ====="
+                echo "=================================="
+                echo "Jenkins Workspace"
+                echo "=================================="
+
                 ls -lah ${REPORT_DIR}
 
                 echo ""
-                echo "Copying reports to security/zap..."
+                echo "=================================="
+                echo "Workspace Path"
+                echo "=================================="
 
-                cp -f ${REPORT_DIR}/* security/zap/
-
-                chmod -R 777 security/zap
-
-                echo ""
-                echo "===== security/zap ====="
-                ls -lah security/zap
-                '''
-            }
-        }
-
-        stage('Verify Reports') {
-            steps {
-                sh '''
-                if [ -f security/zap/zap-report.json ]; then
-                    echo "SUCCESS : zap-report.json generated"
-                else
-                    echo "ERROR : zap-report.json not found"
-                    exit 1
-                fi
+                pwd
                 '''
             }
         }
 
         stage('Archive Reports') {
             steps {
-                archiveArtifacts(
-                    artifacts: 'security/zap/*',
-                    fingerprint: true
-                )
+                archiveArtifacts artifacts: 'zap-report/**', allowEmptyArchive: true
             }
         }
 
         stage('Publish HTML Report') {
             steps {
                 publishHTML(target: [
-                    allowMissing: false,
+                    allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
-                    reportDir: 'security/zap',
+                    reportDir: 'zap-report',
                     reportFiles: 'zap-report.html',
                     reportName: 'OWASP ZAP DAST Report'
                 ])
@@ -122,32 +111,24 @@ pipeline {
 
     post {
 
-        success {
-            echo "=================================="
-            echo "OWASP ZAP JSON Report Generated"
-            echo "=================================="
-        }
-
-        unstable {
-            echo "OWASP ZAP Completed With Warnings"
-        }
-
-        failure {
-            echo "OWASP ZAP Pipeline Failed"
-        }
-
         always {
-            echo "Pipeline Finished"
+            echo "=================================="
+            echo "OWASP ZAP Pipeline Finished"
+            echo "=================================="
 
             sh '''
             echo ""
-            echo "===== zap-report ====="
+            echo "===== Workspace Files ====="
             ls -lah zap-report || true
-
-            echo ""
-            echo "===== security/zap ====="
-            ls -lah security/zap || true
             '''
+        }
+
+        success {
+            echo "OWASP ZAP Scan Successful"
+        }
+
+        failure {
+            echo "OWASP ZAP Scan Failed"
         }
     }
 }

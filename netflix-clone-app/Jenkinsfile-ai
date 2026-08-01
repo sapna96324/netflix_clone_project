@@ -66,6 +66,24 @@ stage('Prepare Dataset') {
         '''
     }
 }
+stage('Train AI Model') {
+    steps {
+        sh '''
+        . ai-security/venv/bin/activate
+
+        python ai-security/train.py
+        '''
+    }
+}
+stage('Predict Security Risk') {
+    steps {
+        sh '''
+        . ai-security/venv/bin/activate
+
+        python ai-security/predict.py
+        '''
+    }
+}
 
     }
 

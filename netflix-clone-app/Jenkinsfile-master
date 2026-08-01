@@ -1,0 +1,72 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Start Pipeline') {
+            steps {
+                echo "======================================"
+                echo "AI Driven DevSecOps Pipeline Started"
+                echo "======================================"
+            }
+        }
+
+        stage('SonarQube Scan') {
+            steps {
+                build job: 'Netflix-SonarQube-Pipeline',
+                      wait: true
+            }
+        }
+
+        stage('Dependency Check') {
+            steps {
+                build job: 'Netflix-DependencyCheck-Pipeline',
+                      wait: true
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                build job: 'Netflix-Trivy-Pipeline',
+                      wait: true
+            }
+        }
+
+        stage('OWASP ZAP Scan') {
+            steps {
+                build job: 'Netflix-ZAP-DAST-Pipeline',
+                      wait: true
+            }
+        }
+
+        stage('AI Security Pipeline') {
+            steps {
+                build job: 'Netflix-AI-Pipeline',
+                      wait: true
+            }
+        }
+
+        stage('Pipeline Completed') {
+            steps {
+                echo "======================================"
+                echo "AI Driven DevSecOps Pipeline Finished"
+                echo "======================================"
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo "MASTER PIPELINE SUCCESSFUL"
+        }
+
+        failure {
+            echo "MASTER PIPELINE FAILED"
+        }
+
+        always {
+            echo "All stages completed."
+        }
+    }
+}

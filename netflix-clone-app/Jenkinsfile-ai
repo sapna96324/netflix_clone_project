@@ -44,6 +44,26 @@ pipeline {
             }
         }
 
+stage('Copy Security Reports') {
+    steps {
+        sh '''
+        echo "=================================="
+        echo "Copying Security Reports"
+        echo "=================================="
+
+        mkdir -p ai-security/data/reports
+
+        cp -r /var/jenkins_home/devsecops-artifacts/* \
+              ai-security/data/reports/
+
+        echo ""
+        echo "Copied Reports"
+
+        find ai-security/data/reports -type f
+        '''
+    }
+}
+
         stage('Merge Reports') {
             steps {
                 sh '''

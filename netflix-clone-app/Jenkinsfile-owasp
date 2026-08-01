@@ -1,10 +1,10 @@
 pipeline {
     agent any
 
-    environment {
-        REPORT_DIR = "security/dependency-check"
-    }
-
+environment {
+    REPORT_DIR = "security/dependency-check"
+    ARTIFACT_DIR = "/var/jenkins_home/devsecops-artifacts/dependency-check"
+}
     stages {
 
         stage('Repository Ready') {
@@ -59,7 +59,25 @@ pipeline {
             }
         }
 
-        stage('Publish OWASP Report') {
+stage('Publish Report') {
+    steps {
+        sh '''
+        mkdir -p ${ARTIFACT_DIR}
+
+        cp ${REPORT_DIR}/dependency-check-report.json \
+           ${ARTIFACT_DIR}/
+
+        echo ""
+        echo "===================================="
+        echo "Published Dependency Check Report"
+        echo "===================================="
+
+        ls -lah ${ARTIFACT_DIR}
+        '''
+    }
+} 
+
+       stage('Publish OWASP Report') {
             steps {
                 dependencyCheckPublisher(
                     pattern: 'security/dependency-check/dependency-check-report.xml'

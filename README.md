@@ -385,10 +385,223 @@ Before running the project, ensure the following software is installed:
 
 ---
 
+---
+
+# ▶️ Usage Guide
+
+## Running the Complete DevSecOps Pipeline
+
+Start the following Docker containers before executing the pipeline:
+
+- Jenkins
+- SonarQube
+- Prometheus
+- Grafana
+- Node Exporter
+- cAdvisor
+- Netflix React Application
+- AI Dashboard
+
+Verify that all required containers are running:
+
+```bash
+docker ps
+```
+
+---
+
+# 🚀 Execute the Master Pipeline
+
+Open Jenkins:
+
+```
+http://localhost:8081
+```
+
+Run:
+
+```
+Netflix-Master-Pipeline
+```
+
+The Master Pipeline automatically executes the following stages:
+
+```
+Start Pipeline
+
+↓
+
+SonarQube Scan
+
+↓
+
+OWASP Dependency Check
+
+↓
+
+Trivy Container Scan
+
+↓
+
+OWASP ZAP Scan
+
+↓
+
+AI Security Pipeline
+
+↓
+
+Pipeline Completed
+```
+
+---
+
+# 🤖 AI Security Pipeline
+
+The AI Security Pipeline performs:
+
+1. Copy Security Reports
+2. Merge Security Reports
+3. Prepare Training Dataset
+4. Train Machine Learning Model
+5. Predict Security Risk
+6. Generate HTML Security Report
+
+---
+
+# 📊 Dashboard
+
+Once the AI pipeline completes successfully, open:
+
+```
+http://localhost:5000
+```
+
+The dashboard displays:
+
+- Executive Security Summary
+- Risk Score
+- SonarQube Findings
+- Trivy Vulnerabilities
+- Dependency Check Findings
+- Severity Distribution
+- AI Prediction
+- Latest Security Findings
+- Download Reports
+
+---
+
+# 🔄 Auto Refresh
+
+The dashboard automatically refreshes every **30 seconds**.
+
+The **Last Updated** timestamp changes only when a new AI prediction (`prediction.csv`) is generated after a successful pipeline execution.
+
+---
+
+# 📈 Monitoring Dashboard
+
+Open Grafana:
+
+```
+http://localhost:3001
+```
+
+Open Prometheus:
+
+```
+http://localhost:9090
+```
+
+The monitoring stack provides:
+
+- CPU Usage
+- Memory Usage
+- Docker Container Metrics
+- Jenkins Metrics
+- Infrastructure Monitoring
+
+---
+
+# 📥 Generated Reports
+
+The pipeline generates the following reports:
+
+| Report | Location |
+|---------|----------|
+| SonarQube Report | `security/sonarqube/` |
+| Trivy Report | `security/trivy/` |
+| Dependency Check Report | `security/dependency-check/` |
+| ZAP Report | `security/zap/` |
+| Merged Report | `ai-security/data/merged_reports.json` |
+| Prediction | `ai-security/output/prediction.csv` |
+| HTML Report | `ai-security/output/security_report.html` |
+
+---
+
+# ✅ Expected Pipeline Flow
+
+```text
+Developer
+
+↓
+
+GitHub Repository
+
+↓
+
+Netflix-Master-Pipeline
+
+↓
+
+SonarQube
+
+↓
+
+Dependency Check
+
+↓
+
+Trivy
+
+↓
+
+OWASP ZAP
+
+↓
+
+Netflix-AI-Pipeline
+
+↓
+
+Merge Reports
+
+↓
+
+AI Model
+
+↓
+
+Prediction
+
+↓
+
+Flask Dashboard
+
+↓
+
+Prometheus
+
+↓
+
+Grafana
+```
+
+---
 # 📥 Clone the Repository
 
 ```bash
-git clone https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPOSITORY_NAME>.git
+git clone https://github.com/sapna96324/netflix_clone_project.git
 
 cd <YOUR_REPOSITORY_NAME>
 ```
@@ -775,3 +988,86 @@ Provides real-time infrastructure monitoring.
 
 Detailed setup and execution guide will be added below.
 
+---
+
+# 📸 Project Screenshots
+
+## 1. Jenkins Dashboard
+
+The Jenkins Dashboard manages all CI/CD pipelines used in this project.
+
+![Jenkins Dashboard](screenshots/01-jenkins-dashboard.png)
+
+---
+
+## 2. Master Pipeline
+
+The Master Pipeline orchestrates the complete AI-Driven DevSecOps workflow.
+
+![Master Pipeline](screenshots/02-master-pipeline.png)
+
+---
+
+## 3. SonarQube Dashboard
+
+Static code analysis including Bugs, Vulnerabilities, Code Smells, and Quality Gate.
+
+![SonarQube Dashboard](screenshots/03-sonarqube-dashboard.png)
+
+---
+
+## 4. Trivy Container Scan
+
+Container vulnerability scanning using Trivy.
+
+![Trivy Report](screenshots/04-trivy-report.png)
+
+---
+
+## 5. OWASP Dependency Check
+
+Software Composition Analysis (SCA) for third-party libraries.
+
+![Dependency Check](screenshots/05-dependency-check.png)
+
+---
+
+## 6. OWASP ZAP DAST
+
+Dynamic Application Security Testing (DAST) report.
+
+![OWASP ZAP](screenshots/06-zap-report.png)
+
+---
+
+## 7. AI Security Dashboard
+
+Interactive AI-powered security dashboard with live metrics, severity distribution, AI prediction, and downloadable reports.
+
+![AI Dashboard](screenshots/07-ai-dashboard.png)
+
+---
+
+## 8. Grafana Dashboard
+
+Infrastructure and container monitoring using Grafana.
+
+![Grafana Dashboard](screenshots/08-grafana-dashboard.png)
+
+---
+
+## 9. Prometheus Dashboard
+
+Metrics collection for monitoring the DevSecOps environment.
+
+![Prometheus Dashboard](screenshots/09-prometheus-dashboard.png)
+
+---
+
+## 10. Netflix Clone Application
+
+The deployed React application secured through the DevSecOps pipeline.
+
+![Netflix Application](screenshots/10-netflix-app.png)
+
+---
